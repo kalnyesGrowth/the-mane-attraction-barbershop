@@ -575,12 +575,20 @@ links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',funct
 var canvas=document.getElementById('heroCanvas');
 var video=document.getElementById('heroVideo');
 var ctx=canvas.getContext('2d');
+var heroPlaying=false;
 function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
 resizeCanvas();
-window.addEventListener('resize',resizeCanvas);
-function drawFrame(){if(!video.paused&&!video.ended){ctx.drawImage(video,0,0,canvas.width,canvas.height);requestAnimationFrame(drawFrame)}}
-video.addEventListener('canplay',function(){video.play().then(function(){requestAnimationFrame(drawFrame)}).catch(function(){var poster=new Image();poster.src='poster.jpg';poster.onload=function(){ctx.drawImage(poster,0,0,canvas.width,canvas.height)}});});
+window.addEventListener('resize',function(){resizeCanvas();if(!heroPlaying){var p=new Image();p.src='poster.jpg';p.onload=function(){ctx.drawImage(p,0,0,canvas.width,canvas.height)}}});
+var posterImg=new Image();
+posterImg.src='poster.jpg';
+posterImg.onload=function(){if(!heroPlaying)ctx.drawImage(posterImg,0,0,canvas.width,canvas.height)};
+function drawFrame(){if(!video.paused&&!video.ended){heroPlaying=true;ctx.drawImage(video,0,0,canvas.width,canvas.height);requestAnimationFrame(drawFrame)}}
+function tryPlay(){var p=video.play();if(p&&p.then){p.then(function(){requestAnimationFrame(drawFrame)}).catch(function(){})}}
+video.addEventListener('canplay',tryPlay);
+video.addEventListener('loadeddata',tryPlay);
 video.addEventListener('play',function(){requestAnimationFrame(drawFrame)});
+document.addEventListener('touchstart',function h(){video.load();tryPlay();document.removeEventListener('touchstart',h)},{once:true,passive:true});
+document.addEventListener('scroll',function h(){tryPlay();document.removeEventListener('scroll',h)},{once:true,passive:true});
 
 var reveals=document.querySelectorAll('.reveal');
 var revealObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');revealObs.unobserve(e.target)}})},{threshold:.15});
